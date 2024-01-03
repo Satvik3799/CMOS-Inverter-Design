@@ -1,0 +1,45 @@
+* Inverter for 23M1117 with 200 + 2 x 17 = 234ps delay.
+*including model files for pMOS and nMOS
+.include models-180nm.txt
+*main supply
+Vdd vdd 0 DC 1.8V
+
+Va A 0 dc PULSE(0.18 1.62 0nS 20pS 20pS 4nS 8.0nS)
+Vb B 0 dc 0.18 
+Vc C 0 DC 1.62V
+
+*defining a parameter in order to scale the geometry of pMOS and nMOS
+
+.param w_p=1.740 w_n=0.595
+.param l_p=0.18 l_n=0.18
+
+*MP1 with input A, not scaled!
+MP1 out A Vdd Vdd cmosp 
++ L={1u*{l_p}} W={{w_p}*1u} AD = {2*{w_p}*{l_p}*{1p}} AS = {2*{w_p}*{l_p}*{1p}} PD = {2*({w_p}+2*{l_p})*1u} PS = {2*({w_p}+2*{l_p})*1u}
+
+*MP2 and MP3 with input B and C respectively, scaled to 2 times of the CMOS inverter's pMOS width.
+MP2 N1 B Vdd Vdd cmosp 
++ L={1u*{l_p}} W={{w_p}*2u} AD = {2*2*{w_p}*{l_p}*{1p}} AS = {2*2*{w_p}*{l_p}*{1p}} PD = {2*(2*{w_p}+2*{l_p})*1u} PS = {2*(2*{w_p}+2*{l_p})*1u}
+MP3 out C N1 N1 cmosp 
++ L={1u*{l_p}} W={{w_p}*2u} AD = {2*2*{w_p}*{l_p}*{1p}} AS = {2*2*{w_p}*{l_p}*{1p}} PD = {2*(2*{w_p}+2*{l_p})*1u} PS = {2*(2*{w_p}+2*{l_p})*1u}
+
+*MN1, MN2 and MN3 with input A, B, and C respectively, scaled to 2 times of the CMOS inverter's nMOS width.
+MN1 Out A N2 N2 cmosn
++ L={1u*{l_n}} W={{w_n}*2u} AD = {2*2*{w_n}*{l_n}*{1p}} AS = {2*2*{w_n}*{l_n}*{1p}} PD = {2*(2*{w_n}+2*{l_n})*1u} PS = {2*(2*{w_n}+2*{l_n})*1u}
+MN2 N2 B 0 0 cmosn
++ L={1u*{l_n}} W={{w_n}*2u} AD = {2*2*{w_n}*{l_n}*{1p}} AS = {2*2*{w_n}*{l_n}*{1p}} PD = {2*(2*{w_n}+2*{l_n})*1u} PS = {2*(2*{w_n}+2*{l_n})*1u}
+MN3 N2 C 0 0 cmosn
++ L={1u*{l_n}} W={{w_n}*2u} AD = {2*2*{w_n}*{l_n}*{1p}} AS = {2*2*{w_n}*{l_n}*{1p}} PD = {2*(2*{w_n}+2*{l_n})*1u} PS = {2*(2*{w_n}+2*{l_n})*1u}
+
+*load capacitor
+C3 out 0 0.05pF
+
+*TRANSIENT ANALYSIS with pulse inputs
+.tran 1pS 35nS 0nS
+.control
+run
+plot V(out) V(A)+12 V(B)+8 V(C)+4
+meas tran drise TRIG v(Out) VAL=0.18 RISE=2 TARG v(out) VAL=1.62 RISE=2
+meas tran dfall TRIG v(out) VAL=1.62 FALL=2 TARG v(out) VAL=0.18 FALL=2
+.endc
+.end

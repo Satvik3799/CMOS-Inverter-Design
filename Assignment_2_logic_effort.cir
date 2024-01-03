@@ -1,0 +1,67 @@
+* Inverter for 23M1117 with 200 + 2 x 17 = 234ps delay.
+
+*including model files for pMOS and nMOS
+
+.include models-180nm.txt
+
+*defining a parameter in order to scale the geometry of pMOS and nMOS
+
+.param w_p=1.740 w_n=0.595
+.param l_p=0.18 l_n=0.18
+
+*defining a circuit component that can be called multiple times
+*formula used for Area: AD=AS= Wx2Lmin and Perimeter: PD=PS= 2x(W+2Lmin)
+.subckt inv supply Inp Out
+MP1 Out Inp Supply Supply cmosp 
++ L={1u*{l_p}} W={{w_p}*1u} AD = {2*{w_p}*{l_p}*{1p}} AS = {2*{w_p}*{l_p}*{1p}} PD = {2*({w_p}+2*{l_p})*1u} PS = {2*({w_p}+2*{l_p})*1u}
+MN1 Out Inp 0      0      cmosn
++ L={1u*{l_n}} W={{w_n}*1u} AD = {2*{w_n}*{l_n}*{1p}} AS = {2*{w_n}*{l_n}*{1p}} PD = {2*({w_n}+2*{l_n})*1u} PS = {2*({w_p}+2*{l_n})*1u}
+.ends
+
+
+vdd supply 0 dc 1.8
+
+*Input shaper stage
+Xinv1 supply ck o1 inv
+Xinv2 supply o1 o2 inv
+Xinv3 supply o1 o3 inv
+Xinv4 supply o1 o3 inv
+Xinv5 supply o1 o3 inv
+c1 o3 o 0.1p
+
+*Design under test stage
+Xinv6 supply o2 o4 inv
+
+*Test load stage
+*Xinv7 supply o4 o5 inv
+*Xinv8 supply o4 o5 inv
+*Xinv9 supply o4 o5 inv
+Xinv10 supply o4 o5 inv
+Xinv11 supply o4 o5 inv
+Xinv12 supply o4 o5 inv
+Xinv13 supply o4 o5 inv
+Xinv14 supply o4 o5 inv
+
+*Load on Load stage
+Xinv15 supply o5 o6 inv
+Xinv16 supply o5 o6 inv
+Xinv17 supply o5 o6 inv
+Xinv18 supply o5 o6 inv
+c2 o6 o 0.1p
+
+
+* pulse with time period of Trep, rise and fall times = Trep/20
+.param Trep= 5n
+.param Trf = {Trep/20.0}
+.param Tw = {Trep/2.0 - Trf}
+.param hival=1.8
+.param loval=0.0
+Vpulse ck 0 DC 0 PULSE({loval} {hival} {Tw} {Trf} {Trf} {Tw} {Trep})
+.tran 0.5pS {3*Trep} 0nS
+
+.control
+run
+meas tran invdelay16 TRIG v(o2) VAL=0.9 RISE=2 TARG v(o4) VAL=0.9 FALL=2
+meas tran invdelay16 TRIG v(o2) VAL=0.9 FALL=2 TARG v(o4) VAL=0.9 RISE=2
+.endc
+.end
